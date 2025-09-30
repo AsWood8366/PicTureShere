@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ur" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Photo Post Maker — اپلوڈ، اوورلے، شیئر، بیک اپ</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      padding: 16px;
+      color: #111;
+      direction: rtl;
+      transition: all 0.4s ease;
+    }
+
+    .card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+      max-width: 900px;
+      margin: 10px auto;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 16px;
+      text-align: center;
+      color: #222;
+      border-bottom: 3px solid #0069ff;
+      padding-bottom: 8px;
+    }
+
+    label { display:block; margin:8px 0 4px; font-weight:bold; color:#333; }
+
+    input[type="file"], input[type="number"], textarea, select {
+      width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; font-size:15px; transition:0.3s;
+    }
+    input:focus, textarea:focus, select:focus { border-color:#0069ff; outline:none; box-shadow:0 0 6px rgba(0,105,255,0.4); }
+    textarea { min-height:60px; resize: vertical; }
+
+    .controls, .theme-buttons { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:12px; }
+    button { padding:10px 14px; border-radius:8px; border:0; cursor:pointer; font-size:15px; font-weight:600; transition:all 0.25s ease; }
+    button:hover { transform:translateY(-2px); box-shadow:0 4px 10px rgba(0,0,0,0.15); }
+
+    .btn-primary{ background:#0069ff; color:#fff; }
+    .btn-secondary{ background:#6c757d; color:#fff; }
+    .btn-danger{ background:#dc3545; color:#fff; }
+    .small{ font-size:13px; color:#555; margin-bottom:6px; }
+
+    #previewWrap{ display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; justify-content:center; }
+    .preview{ border:1px solid #ddd; padding:8px; border-radius:8px; background:#fff; }
+    canvas{ max-width:100%; height:auto; display:block; border-radius:8px; }
+    .info{ font-size:13px; color:#333; margin-top:8px; padding:8px; border-radius:8px; background:#f9f9f9; border:1px dashed #bbb; }
+
+    /* Themes */
+    body.light { background: linear-gradient(135deg,#f7f7f7,#eaeaea); color:#111; }
+    body.light .card{ background:#fff; box-shadow:0 4px 10px rgba(0,0,0,0.06); }
+    body.light .info{ background:#f9f9f9; border:1px dashed #bbb; }
+
+    body.dark { background: linear-gradient(135deg,#1c1c1c,#2c2c2c); color:#eee; }
+    body.dark .card{ background:#2a2a2a; box-shadow:0 8px 25px rgba(0,0,0,0.4); }
+    body.dark .info{ background:#333; border:1px dashed #666; }
+
+    body.blue { background: linear-gradient(135deg,#cce0ff,#99ccff); color:#022b5b; }
+    body.blue .card{ background:#e6f0ff; box-shadow:0 8px 25px rgba(0,0,50,0.2); }
+    body.blue .info{ background:#d9ebff; border:1px dashed #80bfff; }
+
+    body.green { background: linear-gradient(135deg,#d4edda,#a8e5a1); color:#155724; }
+    body.green .card{ background:#e6f8e6; box-shadow:0 8px 25px rgba(0,50,0,0.2); }
+    body.green .info{ background:#d9f0d9; border:1px dashed #4caf50; }
+
+    @media (max-width:600px){ .controls, .theme-buttons{ flex-direction:column; } button{ width:100%; } }
+  </style>
+</head>
+<body class="light">
+
+  <div class="theme-buttons">
+    <button data-theme="light">Light</button>
+    <button data-theme="dark">Dark</button>
+    <button data-theme="blue">Blue</button>
+    <button data-theme="green">Green</button>
+  </div>
+  
+  <div class="card">
+    <h2>Photo Post Maker — تصویر اپلوڈ کریں، متن لکھیں، شیئر کریں اور Google Sheets میں بیک اپ</h2>
+    <label>تصویر اپلوڈ کریں</label>
+    <input id="imageFile" type="file" accept="image/*" />
+    <label>پوسٹ کا متن (جو تصویر پر آئے گا)</label>
+    <textarea id="postText" placeholder="یہاں اپنا پیغام لکھیں... (مثلاً: آج کا مزہدار پل)"></textarea>
+    <label>تصویر کی تفصیل</label>
+    <textarea id="imageDesc" placeholder="یہاں تصویر کی تفصیل لکھیں..." rows="3"></textarea>
+    <label>ٹیکسٹ کی پوزیشن</label>
+    <select id="textPosition">
+      <option value="bottom">نیچے (overlay)</option>
+  <option value="top">اوپر (overlay)</option>
+  <option value="center">درمیان (image کے اوپر)</option>
+  <option value="above">تصویر کے اوپر تھوڑا اوپر</option> <!-- نیا option -->
+  <option value="below">تصویر کے نیچے تھوڑا نیچے</option> <!-- نیا option -->
+    </select>
+    <label>فُونٹ سائز</label>
+    <input id="fontSize" type="number" min="12" max="80" value="28" />
+    <div class="controls">
+      <button id="generateBtn" class="btn-primary">پری ویو بنائیں</button>
+      <button id="shareBtn" class="btn-secondary">براہِ راست شئیر کریں (Share)</button>
+      <button id="downloadBtn" class="btn-secondary">پوسٹ ڈاؤن لوڈ کریں</button>
+      <button id="backupBtn" class="btn-primary">Google Sheets میں بیک اپ کریں</button>
+      <button id="clearBtn" class="btn-danger">صاف کریں</button>
+    </div>
+    <div id="previewWrap" aria-live="polite">
+      <div class="preview">
+        <div class="small">پریویو</div>
+        <canvas id="canvas" width="800" height="800" style="background:#eee"></canvas>
+      </div>
+      <div style="flex:1; min-width:240px;">
+        <div class="small">اسٹیسٹکس</div>
+        <div id="infoArea" class="info">کوئی تصویر منتخب نہیں۔</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;" class="small">
+      نوٹ: Google Sheets میں بیک اپ کرنے کے لیے آپ کو GAS URL deploy کرنا ہوگا اور یہاں replace کرنا ہوگا۔
+    </div>
+  </div>
+
+<script>
+  // --------- Theme Switcher ----------
+  const themeButtons = document.querySelectorAll('.theme-buttons button');
+  themeButtons.forEach(btn=>{
+    btn.addEventListener('click',()=>{ 
+      document.body.className = btn.getAttribute('data-theme'); 
+    });
+  });
+
+  // ---------- Your Existing JS ----------
+  const GAS_URL='https://script.google.com/macros/s/AKfycbzQWN5azy4wGtLd9dAbALUf7O3sd-MYRzgPB1it5kMC2mRukKzdJq_H3F1yU8wLiCZFfg/exec';
+  const imageFile = document.getElementById('imageFile');
+  const postText = document.getElementById('postText');
+  const textPosition = document.getElementById('textPosition');
+  const fontSizeEl = document.getElementById('fontSize');
+  const generateBtn = document.getElementById('generateBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const backupBtn = document.getElementById('backupBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const infoArea = document.getElementById('infoArea');
+  const imageDesc = document.getElementById('imageDesc');
+
+  let currentImage = null;
+
+  function updateInfo(text){ infoArea.textContent = text; }
+
+  imageFile.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        currentImage=img;
+        updateInfo(`تصویر لوڈ ہوئی — ${f.name} — ${img.width}×${img.height}px`);
+        drawPreview();
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(f);
+  });
+
+  function drawPreview() {
+  if(!currentImage){
+    ctx.fillStyle='#eee';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    updateInfo('کوئی تصویر نہیں۔');
+    return;
+  }
+
+  const maxDim = 1200;
+  let W = currentImage.width, H = currentImage.height;
+  if(Math.max(W,H)>maxDim){ const ratio = maxDim/Math.max(W,H); W=Math.round(W*ratio); H=Math.round(H*ratio); }
+  canvas.width = W;
+  canvas.height = H;
+
+  // تصویر draw کریں
+  ctx.fillStyle = '#eee'; 
+  ctx.fillRect(0,0,W,H);
+  ctx.drawImage(currentImage,0,0,W,H);
+
+  // main text overlay
+  drawTextOverlay();
+
+  // description draw
+  drawDescription();
+  
+  updateInfo(`پری ویو تیار — ${W}×${H}px`);
+}
+
+function drawTextOverlay(){
+  const pos = textPosition.value;
+  const text = postText.value||'';
+  const fontSize = Math.max(12, Number(fontSizeEl.value)||28);
+  const lines = wrapText(ctx,text,canvas.width-40);
+
+  // text box
+  const boxHeight = lines.length*(fontSize+8) + 20;
+  const boxWidth = canvas.width-40;
+  let boxY, startY;
+
+  if(pos==='top') boxY = 0, startY = fontSize + 10;
+  else if(pos==='bottom') boxY = canvas.height - boxHeight, startY = boxY + fontSize + 10;
+  else if(pos==='center') boxY = canvas.height/2 - boxHeight/2, startY = boxY + fontSize + 10;
+  else if(pos==='above') boxY = -boxHeight/2, startY = 10 + fontSize;
+  else if(pos==='below') boxY = canvas.height + 10, startY = boxY + fontSize;
+
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  ctx.fillRect(20, boxY, boxWidth, boxHeight);
+
+  ctx.textAlign='center';
+  ctx.fillStyle='#fff';
+  ctx.strokeStyle='rgba(0,0,0,0.7)';
+  ctx.lineWidth = Math.ceil(fontSize/8);
+  ctx.font=`bold ${fontSize}px sans-serif`;
+
+  lines.forEach((line,i)=>{
+    const y = startY + i*(fontSize+8);
+    ctx.strokeText(line,canvas.width/2,y);
+    ctx.fillText(line,canvas.width/2,y);
+  });
+}
+
+function drawDescription(){
+  const desc = imageDesc.value||'';
+  if(!desc) return;
+  const fontSize = 16;
+  const lines = wrapText(ctx,desc,canvas.width-40);
+  const boxHeight = lines.length*(fontSize+6) + 12;
+  const boxWidth = canvas.width-40;
+  const boxX = 20;
+  const boxY = canvas.height - boxHeight - 10; // تصویر کے نیچے
+
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+  ctx.fillStyle='#000';
+  ctx.strokeStyle='rgba(0,0,0,0.3)';
+  ctx.lineWidth=1;
+  ctx.font=`${fontSize}px sans-serif`;
+  ctx.textAlign='center';
+
+  lines.forEach((line,i)=>{
+    const y = boxY + fontSize + i*(fontSize+6);
+    ctx.fillText(line, canvas.width/2, y);
+    ctx.strokeText(line, canvas.width/2, y);
+  });
+}
+
+
+  function wrapText(ctx,text,maxWidth){
+    if(!text) return [''];
+    const words=text.split(' ');
+    const lines=[];
+    let line='';
+    for(let n=0;n<words.length;n++){
+      const testLine=line?line+' '+words[n]:words[n];
+      const metrics=ctx.measureText(testLine);
+      if(metrics.width>maxWidth && line){ lines.push(line); line=words[n]; }
+      else line=testLine;
+    }
+    if(line) lines.push(line);
+    return lines;
+  }
+
+  generateBtn.addEventListener('click',()=>{ if(!currentImage){ alert('پہلے تصویر اپلوڈ کریں'); return; } drawPreview(); });
+
+  downloadBtn.addEventListener('click',()=>{
+    if(!currentImage){ alert('پہلے تصویر اپلوڈ کریں'); return; }
+    canvas.toBlob(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='post-image.png'; a.click(); URL.revokeObjectURL(url);
+    },'image/png');
+  });
+
+  backupBtn.addEventListener('click',async()=>{
+    if(!currentImage){ alert('پہلے تصویر اپلوڈ کریں'); return; }
+    const dataUrl=canvas.toDataURL('image/png');
+    const formData=new FormData();
+    formData.append("text",postText.value||"");
+    formData.append("image",dataUrl);
+    formData.append("timestamp",new Date().toISOString());
+    try{
+      const resp=await fetch(GAS_URL,{method:"POST",body:formData});
+      const result=await resp.json();
+      if(result.status==='success') alert('✅ Backup saved in Google Sheet!');
+      else alert('❌ Backup failed: '+result.msg);
+    }catch(err){ alert('Backup failed: '+err.message); }
+  });
+
+  clearBtn.addEventListener('click',()=>{
+    imageFile.value=''; postText.value=''; currentImage=null; ctx.clearRect(0,0,canvas.width,canvas.height); updateInfo('صاف کردیا گیا۔');
+  });
+
+  ctx.fillStyle='#eee'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+</script>
+
+</body>
+</html>
