@@ -304,7 +304,51 @@ function drawDescription(){
 
   ctx.fillStyle='#eee'; ctx.fillRect(0,0,canvas.width,canvas.height);
 
+  shareBtn.addEventListener('click', async () => {
+  if (!currentImage) {
+    alert("پہلے تصویر اپلوڈ کریں اور پری ویو بنائیں");
+    return;
+  }
+
+  // پہلے تصویر کو Blob میں تبدیل کریں
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], "post.png", { type: "image/png" });
+    const text = postText.value || "یہ میری نئی پوسٹ ہے!";
+    const url = "https://your-website.com"; // اپنی ویب سائٹ یا تصویر کا لنک دیں
+
+    // ---- Web Share API (Mobile Browsers) ----
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "میری پوسٹ",
+          text: text,
+          files: [file]
+        });
+        console.log("✅ کامیابی سے شئیر ہو گیا!");
+        return;
+      } catch (err) {
+        console.warn("Web Share failed, fallback شروع:", err);
+      }
+    }
+
+    // ---- Fallback Links (Desktop یا unsupported browsers) ----
+    const encodedText = encodeURIComponent(text);
+    const encodedUrl = encodeURIComponent(url);
+
+    // WhatsApp
+    window.open(`https://wa.me/?text=${encodedText}%20${encodedUrl}`, "_blank");
+
+    // Facebook
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`, "_blank");
+
+    // Twitter (X)
+    window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, "_blank");
+  }, "image/png");
+});
+
+
 </script>
 
 </body>
 </html>
+
