@@ -25,6 +25,42 @@
 
     .card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
 
+
+    .card label {
+  display: block;
+  margin: 12px 0 6px;
+  font-weight: bold;
+  color: #222;
+  text-align: right; /* اردو alignment کے لئے */
+}
+
+.card input[type="file"],
+.card input[type="number"],
+.card textarea,
+.card select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  direction: rtl;  /* اردو میں لکھنے کے لئے */
+  text-align: right;
+}
+
+.card textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.card h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+
     h2 {
       font-size: 24px;
       margin-bottom: 16px;
@@ -351,4 +387,5 @@ function drawDescription(){
 
 </body>
 </html>
+
 
