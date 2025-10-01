@@ -268,30 +268,44 @@ function drawTextOverlay(){
 }
 
 function drawDescription(){
-  const desc = imageDesc.value||'';
+  const desc = imageDesc.value || '';
   if(!desc) return;
+
   const fontSize = 16;
-  const lines = wrapText(ctx,desc,canvas.width-40);
-  const boxHeight = lines.length*(fontSize+6) + 12;
-  const boxWidth = canvas.width-40;
+  const lines = wrapText(ctx, desc, canvas.width - 40);
+  const boxHeight = lines.length * (fontSize + 6) + 12;
+  const boxWidth = canvas.width - 40;
   const boxX = 20;
-  const boxY = canvas.height - boxHeight - 10; // تصویر کے نیچے
+  const boxY = canvas.height + 10; // تصویر کے نیچے (canvas کے بعد تھوڑا gap)
 
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+  // Canvas height بڑھا دیں تاکہ description کے لیے جگہ ہو
+  canvas.height = canvas.height + boxHeight + 20;
 
-  ctx.fillStyle='#000';
-  ctx.strokeStyle='rgba(0,0,0,0.3)';
-  ctx.lineWidth=1;
-  ctx.font=`${fontSize}px sans-serif`;
-  ctx.textAlign='center';
+  // دوبارہ image draw کریں تاکہ height adjust ہو جائے
+  ctx.fillStyle = '#eee';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if(currentImage) ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height - boxHeight - 20);
 
-  lines.forEach((line,i)=>{
-    const y = boxY + fontSize + i*(fontSize+6);
-    ctx.fillText(line, canvas.width/2, y);
-    ctx.strokeText(line, canvas.width/2, y);
+  // overlay text دوبارہ draw کریں
+  drawTextOverlay();
+
+  // description box draw کریں
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillRect(boxX, canvas.height - boxHeight - 10, boxWidth, boxHeight);
+
+  ctx.fillStyle = '#000';
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 1;
+  ctx.font = `${fontSize}px sans-serif`;
+  ctx.textAlign = 'center';
+
+  lines.forEach((line, i) => {
+    const y = canvas.height - boxHeight + fontSize + i * (fontSize + 6) - 10;
+    ctx.fillText(line, canvas.width / 2, y);
+    ctx.strokeText(line, canvas.width / 2, y);
   });
 }
+
 
 
   function wrapText(ctx,text,maxWidth){
@@ -387,5 +401,6 @@ function drawDescription(){
 
 </body>
 </html>
+
 
 
