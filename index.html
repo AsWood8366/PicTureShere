@@ -61,6 +61,7 @@
 }
 
 
+
     h2 {
       font-size: 24px;
       margin-bottom: 16px;
@@ -207,65 +208,140 @@
   });
 
   function drawPreview() {
-  if(!currentImage){
-    ctx.fillStyle='#eee';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    updateInfo('کوئی تصویر نہیں۔');
-    return;
+  const title = postText.value.trim();       // اوپر والا عنوان
+  const desc = imageDesc.value.trim();       // نیچے والی تفصیل
+  const fontSize = Math.max(18, Number(fontSizeEl.value) || 32);
+
+  const titleHeight = fontSize * 2 + 40;     // اوپر حصہ
+  const descFont = 22;
+  const descLines = wrapText(ctx, desc, 1000 - 80);
+  const descHeight = desc ? descLines.length * (descFont + 10) + 60 : 0;
+
+  // اگر تصویر نہیں ہے تو auto background
+  let imageW = 1000, imageH = 700;
+  if (currentImage) {
+    const ratio = Math.min(1000 / currentImage.width, 700 / currentImage.height);
+    imageW = currentImage.width * ratio;
+    imageH = currentImage.height * ratio;
   }
 
-  const maxDim = 1200;
-  let W = currentImage.width, H = currentImage.height;
-  if(Math.max(W,H)>maxDim){ const ratio = maxDim/Math.max(W,H); W=Math.round(W*ratio); H=Math.round(H*ratio); }
-  canvas.width = W;
-  canvas.height = H;
+  // Total canvas height = Title + Image + Description
+  canvas.width = 1000;
+  canvas.height = titleHeight + imageH + descHeight + 60;
 
-  // تصویر draw کریں
-  ctx.fillStyle = '#eee'; 
-  ctx.fillRect(0,0,W,H);
-  ctx.drawImage(currentImage,0,0,W,H);
+  // --- 1️⃣ Title Section ---
+  const gradientTitle = ctx.createLinearGradient(0, 0, 1000, titleHeight);
+  gradientTitle.addColorStop(0, "#111");
+  gradientTitle.addColorStop(1, "#333");
+  ctx.fillStyle = gradientTitle;
+  ctx.fillRect(0, 0, 1000, titleHeight);
 
-  // main text overlay
-  drawTextOverlay();
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillStyle = "gold";
+  ctx.fillText(title || "📜 عنوان یہاں لکھیں", 500, titleHeight - 20);
 
-  // description draw
-  drawDescription();
-  
-  updateInfo(`پری ویو تیار — ${W}×${H}px`);
+  // --- 2️⃣ Image Area ---
+  const imageY = titleHeight + 10;
+  if (currentImage) {
+    ctx.drawImage(currentImage, (1000 - imageW) / 2, imageY, imageW, imageH);
+  } else {
+    const g = ctx.createLinearGradient(0, imageY, 1000, imageY + imageH);
+    g.addColorStop(0, "#ff0077");
+    g.addColorStop(0.3, "#ff8800");
+    g.addColorStop(0.6, "#00bbff");
+    g.addColorStop(1, "#00ff77");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, imageY, 1000, imageH);
+
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+    ctx.lineWidth = 4;
+    ctx.strokeText(title || "Post Text", 500, imageY + imageH / 2);
+    ctx.fillText(title || "Post Text", 500, imageY + imageH / 2);
+  }
+
+  // --- 3️⃣ Description Area ---
+  const descY = imageY + imageH + 20;
+  if (desc) {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, descY, 1000, descHeight + 30);
+    ctx.fillStyle = "#111";
+    ctx.font = `${descFont}px sans-serif`;
+    ctx.textAlign = "center";
+
+    descLines.forEach((line, i) => {
+      const y = descY + 40 + i * (descFont + 10);
+      ctx.fillText(line, 500, y);
+    });
+  }
+
+  infoArea.textContent = currentImage
+    ? "📸 پری ویو تیار (تصویر + متن + تفصیل)"
+    : "🎨 رنگین پوسٹ تیار (بغیر تصویر)";
 }
 
-function drawTextOverlay(){
-  const pos = textPosition.value;
-  const text = postText.value||'';
-  const fontSize = Math.max(12, Number(fontSizeEl.value)||28);
-  const lines = wrapText(ctx,text,canvas.width-40);
 
-  // text box
-  const boxHeight = lines.length*(fontSize+8) + 20;
-  const boxWidth = canvas.width-40;
+
+function drawTextOverlay() {
+  const pos = textPosition.value;
+  const text = postText.value || '';
+  const fontSize = Math.max(12, Number(fontSizeEl.value) || 28);
+  const lines = wrapText(ctx, text, canvas.width - 100);
+
+  if (!text.trim()) return;
+
+  const lineHeight = fontSize + 10;
+  const boxHeight = lines.length * lineHeight + 40;
+  const boxWidth = canvas.width;
   let boxY, startY;
 
-  if(pos==='top') boxY = 0, startY = fontSize + 10;
-  else if(pos==='bottom') boxY = canvas.height - boxHeight, startY = boxY + fontSize + 10;
-  else if(pos==='center') boxY = canvas.height/2 - boxHeight/2, startY = boxY + fontSize + 10;
-  else if(pos==='above') boxY = -boxHeight/2, startY = 10 + fontSize;
-  else if(pos==='below') boxY = canvas.height + 10, startY = boxY + fontSize;
+  // ----- پوزیشن طے کریں -----
+  if (pos === 'top') {
+    // تصویر کے اوپر (باہر)
+    // canvas height بڑھائیں تاکہ اوپر جگہ بن سکے
+    const original = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const oldHeight = canvas.height;
+    canvas.height = oldHeight + boxHeight + 20;
+    ctx.putImageData(original, 0, boxHeight + 20);
+    boxY = 0;
+    startY = 40 + fontSize / 2;
+  } 
+  else if (pos === 'bottom') {
+    // تصویر کے نیچے (باہر)
+    const original = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const oldHeight = canvas.height;
+    canvas.height = oldHeight + boxHeight + 20;
+    ctx.putImageData(original, 0, 0);
+    boxY = oldHeight + 10;
+    startY = boxY + 40 + fontSize / 2;
+  } 
+  else {
+    // تصویر کے اندر center
+    boxY = (canvas.height / 2) - (boxHeight / 2);
+    startY = boxY + 40 + fontSize / 2;
+  }
 
-  ctx.fillStyle='rgba(0,0,0,0.25)';
-  ctx.fillRect(20, boxY, boxWidth, boxHeight);
+  // ----- overlay background -----
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, boxY, boxWidth, boxHeight);
 
-  ctx.textAlign='center';
-  ctx.fillStyle='#fff';
-  ctx.strokeStyle='rgba(0,0,0,0.7)';
-  ctx.lineWidth = Math.ceil(fontSize/8);
-  ctx.font=`bold ${fontSize}px sans-serif`;
+  // ----- text styling -----
+  ctx.textAlign = 'center';
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.lineWidth = Math.ceil(fontSize / 8);
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillStyle = '#fff';
 
-  lines.forEach((line,i)=>{
-    const y = startY + i*(fontSize+8);
-    ctx.strokeText(line,canvas.width/2,y);
-    ctx.fillText(line,canvas.width/2,y);
+  // ----- text draw -----
+  lines.forEach((line, i) => {
+    const y = startY + i * lineHeight;
+    ctx.strokeText(line, canvas.width / 2, y);
+    ctx.fillText(line, canvas.width / 2, y);
   });
 }
+
 
 function drawDescription(){
   const desc = imageDesc.value || '';
@@ -300,9 +376,9 @@ function drawDescription(){
   ctx.textAlign = 'center';
 
   lines.forEach((line, i) => {
-    const y = canvas.height - boxHeight + fontSize + i * (fontSize + 6) - 10;
-    ctx.fillText(line, canvas.width / 2, y);
-    ctx.strokeText(line, canvas.width / 2, y);
+    const yOffset = canvas.height - boxHeight + fontSize + i * (fontSize + 6);
+ctx.fillText(line, canvas.width / 2, yOffset);
+ctx.strokeText(line, canvas.width / 2, yOffset);
   });
 }
 
@@ -322,8 +398,9 @@ function drawDescription(){
     if(line) lines.push(line);
     return lines;
   }
-
-  generateBtn.addEventListener('click',()=>{ if(!currentImage){ alert('پہلے تصویر اپلوڈ کریں'); return; } drawPreview(); });
+generateBtn.addEventListener('click',()=>{
+  drawPreview(); // اب بغیر تصویر بھی پری ویو بن جائے گا
+});
 
   downloadBtn.addEventListener('click',()=>{
     if(!currentImage){ alert('پہلے تصویر اپلوڈ کریں'); return; }
@@ -334,7 +411,7 @@ function drawDescription(){
   });
 
   backupBtn.addEventListener('click',async()=>{
-    if(!currentImage){ alert('پہلے تصویر اپلوڈ کریں'); return; }
+    
     const dataUrl=canvas.toDataURL('image/png');
     const formData=new FormData();
     formData.append("text",postText.value||"");
@@ -354,11 +431,9 @@ function drawDescription(){
 
   ctx.fillStyle='#eee'; ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  shareBtn.addEventListener('click', async () => {
-  if (!currentImage) {
-    alert("پہلے تصویر اپلوڈ کریں اور پری ویو بنائیں");
-    return;
-  }
+
+shareBtn.addEventListener('click', async () => {
+ 
 
   // پہلے تصویر کو Blob میں تبدیل کریں
   canvas.toBlob(async (blob) => {
@@ -381,6 +456,7 @@ function drawDescription(){
       }
     }
 
+
     // ---- Fallback Links (Desktop یا unsupported browsers) ----
     const encodedText = encodeURIComponent(text);
     const encodedUrl = encodeURIComponent(url);
@@ -397,10 +473,10 @@ function drawDescription(){
 });
 
 
+
+
+
 </script>
 
 </body>
 </html>
-
-
-
